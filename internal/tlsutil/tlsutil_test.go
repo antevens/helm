@@ -34,6 +34,7 @@ func TestClientConfig(t *testing.T) {
 		CaCertFile:         testfile(t, testCaCertFile),
 		CertFile:           testfile(t, testCertFile),
 		KeyFile:            testfile(t, testKeyFile),
+		Renegotiate:        RenegotiateNever,
 		InsecureSkipVerify: false,
 	}
 

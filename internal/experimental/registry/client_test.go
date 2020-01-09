@@ -124,16 +124,16 @@ func (suite *RegistryClientTestSuite) TearDownSuite() {
 }
 
 func (suite *RegistryClientTestSuite) Test_0_Login() {
-	err := suite.RegistryClient.Login(suite.DockerRegistryHost, "badverybad", "ohsobad", false)
+	err := suite.RegistryClient.Login(suite.DockerRegistryHost, "badverybad", "ohsobad", "RenegotiateNever", false)
 	suite.NotNil(err, "error logging into registry with bad credentials")
 
-	err = suite.RegistryClient.Login(suite.DockerRegistryHost, "badverybad", "ohsobad", true)
+	err = suite.RegistryClient.Login(suite.DockerRegistryHost, "badverybad", "ohsobad", "RenegotiateNever", true)
 	suite.NotNil(err, "error logging into registry with bad credentials, insecure mode")
 
-	err = suite.RegistryClient.Login(suite.DockerRegistryHost, testUsername, testPassword, false)
+	err = suite.RegistryClient.Login(suite.DockerRegistryHost, testUsername, testPassword, "RenegotiateNever", false)
 	suite.Nil(err, "no error logging into registry with good credentials")
 
-	err = suite.RegistryClient.Login(suite.DockerRegistryHost, testUsername, testPassword, true)
+	err = suite.RegistryClient.Login(suite.DockerRegistryHost, testUsername, testPassword, "RenegotiateNever", true)
 	suite.Nil(err, "no error logging into registry with good credentials, insecure mode")
 }
 

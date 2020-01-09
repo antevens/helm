@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+		http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +32,26 @@ type Options struct {
 	CertFile string
 	// Client-only options
 	InsecureSkipVerify bool
+	// Which form of TLS Renegotiation to support if any .
+	Renegotiate string
+}
+
+// Validate and return TLS renegotiation settings
+func GetRenegotiation(option string) (strategy tls.RenegotiationSupport, err error) {
+	switch option {
+	// RenegotiateNever disables renegotiation.
+	case "RenegotiateNever":
+		return tls.RenegotiateNever, nil
+	// RenegotiateOnceAsClient allows a remote server to request
+	// renegotiation once per connection.
+	case "RenegotiateOnceAsClient":
+		return tls.RenegotiateOnceAsClient, nil
+	// RenegotiateFreelyAsClient allows a remote server to repeatedly
+	// request renegotiation.
+	case "RenegotiateFreelyAsClient":
+		return tls.RenegotiateFreelyAsClient, nil
+	}
+	return tls.RenegotiateNever, errors.New("invalid TLS Renegotiation strategy selected")
 }
 
 // ClientConfig returns a TLS configuration for use by a Helm client.
@@ -52,7 +72,11 @@ func ClientConfig(opts Options) (cfg *tls.Config, err error) {
 			return nil, err
 		}
 	}
+	renegotiation, err := GetRenegotiation(opts.Renegotiate)
+	if err != nil {
+		return nil, errors.Wrapf(err, "valid options include RenegotiateNever (default), RenegotiateOnceAsClient or RenegotiateFreelyAsClient")
+	}
 
-	cfg = &tls.Config{InsecureSkipVerify: opts.InsecureSkipVerify, Certificates: []tls.Certificate{*cert}, RootCAs: pool}
+	cfg = &tls.Config{Renegotiation: renegotiation, InsecureSkipVerify: opts.InsecureSkipVerify, Certificates: []tls.Certificate{*cert}, RootCAs: pool}
 	return cfg, nil
 }
