@@ -19,6 +19,7 @@ package registry // import "helm.sh/helm/v3/internal/experimental/registry"
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"io"
 	"io/ioutil"
 	"sort"
@@ -69,7 +70,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 		}
 	}
 	if client.resolver == nil {
-		resolver, err := client.authorizer.Resolver(context.Background())
+		httpClient := http.DefaultClient
+		resolver, err := client.authorizer.Resolver(context.Background(), httpClient, false)
 		if err != nil {
 			return nil, err
 		}

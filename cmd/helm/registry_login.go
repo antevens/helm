@@ -37,7 +37,7 @@ Authenticate to a remote registry.
 `
 
 func newRegistryLoginCmd(cfg *action.Configuration, out io.Writer) *cobra.Command {
-	var usernameOpt, passwordOpt, renegotiate string
+	var usernameOpt, passwordOpt, renegotiateOpt string
 	var passwordFromStdinOpt, insecureOpt bool
 
 	cmd := &cobra.Command{
@@ -61,10 +61,9 @@ func newRegistryLoginCmd(cfg *action.Configuration, out io.Writer) *cobra.Comman
 	f := cmd.Flags()
 	f.StringVarP(&usernameOpt, "username", "u", "", "registry username")
 	f.StringVarP(&passwordOpt, "password", "p", "", "registry password or identity token")
-	f.StringVarP(&renegotiationOpt, "renegotiate", "", "", "TLS renegotiation stategy")
+	f.StringVarP(&renegotiateOpt, "renegotiate", "", "", "TLS renegotiation stategy")
 	f.BoolVarP(&passwordFromStdinOpt, "password-stdin", "", false, "read passweord or identity token from stdin")
 	f.BoolVarP(&insecureOpt, "insecure", "", false, "allow connections to TLS registry without certs")
-
 	return cmd
 }
 
