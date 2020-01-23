@@ -38,13 +38,14 @@ import (
 
 // Entry represents a collection of parameters for chart repository
 type Entry struct {
-	Name     string `json:"name"`
-	URL      string `json:"url"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	CertFile string `json:"certFile"`
-	KeyFile  string `json:"keyFile"`
-	CAFile   string `json:"caFile"`
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	CertFile    string `json:"certFile"`
+	KeyFile     string `json:"keyFile"`
+	CAFile      string `json:"caFile"`
+	Renegotiate string `json:"renegotiate"`
 }
 
 // ChartRepository represents a chart repository
@@ -122,6 +123,7 @@ func (r *ChartRepository) DownloadIndexFile() (string, error) {
 	resp, err := r.Client.Get(indexURL,
 		getter.WithURL(r.Config.URL),
 		getter.WithTLSClientConfig(r.Config.CertFile, r.Config.KeyFile, r.Config.CAFile),
+		getter.WithTLSRenegotiate(r.Config.Renegotiate),
 		getter.WithBasicAuth(r.Config.Username, r.Config.Password),
 	)
 	if err != nil {
@@ -182,14 +184,14 @@ func (r *ChartRepository) generateIndex() error {
 
 // FindChartInRepoURL finds chart in chart repository pointed by repoURL
 // without adding repo to repositories
-func FindChartInRepoURL(repoURL, chartName, chartVersion, certFile, keyFile, caFile string, getters getter.Providers) (string, error) {
-	return FindChartInAuthRepoURL(repoURL, "", "", chartName, chartVersion, certFile, keyFile, caFile, getters)
+func FindChartInRepoURL(repoURL, chartName, chartVersion, certFile, keyFile, caFile string, renegotiate string, getters getter.Providers) (string, error) {
+	return FindChartInAuthRepoURL(repoURL, "", "", chartName, chartVersion, certFile, keyFile, caFile, renegotiate, getters)
 }
 
 // FindChartInAuthRepoURL finds chart in chart repository pointed by repoURL
 // without adding repo to repositories, like FindChartInRepoURL,
 // but it also receives credentials for the chart repository.
-func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion, certFile, keyFile, caFile string, getters getter.Providers) (string, error) {
+func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion, certFile, keyFile, caFile string, renegotiate string, getters getter.Providers) (string, error) {
 
 	// Download and write the index file to a temporary location
 	buf := make([]byte, 20)
@@ -197,13 +199,14 @@ func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion
 	name := strings.ReplaceAll(base64.StdEncoding.EncodeToString(buf), "/", "-")
 
 	c := Entry{
-		URL:      repoURL,
-		Username: username,
-		Password: password,
-		CertFile: certFile,
-		KeyFile:  keyFile,
-		CAFile:   caFile,
-		Name:     name,
+		URL:         repoURL,
+		Username:    username,
+		Password:    password,
+		CertFile:    certFile,
+		KeyFile:     keyFile,
+		CAFile:      caFile,
+		Name:        name,
+		Renegotiate: renegotiate,
 	}
 	r, err := NewChartRepository(&c, getters)
 	if err != nil {

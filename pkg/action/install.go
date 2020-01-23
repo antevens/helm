@@ -93,15 +93,16 @@ type Install struct {
 
 // ChartPathOptions captures common options used for controlling chart paths
 type ChartPathOptions struct {
-	CaFile   string // --ca-file
-	CertFile string // --cert-file
-	KeyFile  string // --key-file
-	Keyring  string // --keyring
-	Password string // --password
-	RepoURL  string // --repo
-	Username string // --username
-	Verify   bool   // --verify
-	Version  string // --version
+	CaFile      string // --ca-file
+	CertFile    string // --cert-file
+	KeyFile     string // --key-file
+	Keyring     string // --keyring
+	Password    string // --password
+	RepoURL     string // --repo
+	Username    string // --username
+	Verify      bool   // --verify
+	Version     string // --version
+	Renegotiate string // --renegotiate
 }
 
 // NewInstall creates a new Install object with the given configuration.
@@ -671,7 +672,7 @@ func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (
 	}
 	if c.RepoURL != "" {
 		chartURL, err := repo.FindChartInAuthRepoURL(c.RepoURL, c.Username, c.Password, name, version,
-			c.CertFile, c.KeyFile, c.CaFile, getter.All(settings))
+			c.CertFile, c.KeyFile, c.CaFile, c.Renegotiate, getter.All(settings))
 		if err != nil {
 			return "", err
 		}
