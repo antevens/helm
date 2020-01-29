@@ -20,23 +20,37 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
+type TLSRenegotiationStrategy string
+
+const (
+	RenegotiateNever          string = "never"
+	RenegotiateOnceAsClient   string = "once"
+	RenegotiateFreelyAsClient string = "freely"
+)
+
+func (o TLSRenegotiationStrategy) String() string {
+	return string(o)
+}
+
 // Validate and return TLS renegotiation settings
 func GetRenegotiation(option string) (strategy tls.RenegotiationSupport, err error) {
+	option = strings.ToLower(option)
 	switch option {
 	// RenegotiateNever disables renegotiation.
-	case "Never":
+	case RenegotiateNever:
 		return tls.RenegotiateNever, nil
 	// RenegotiateOnceAsClient allows a remote server to request
 	// renegotiation once per connection.
-	case "OnceAsClient":
+	case RenegotiateOnceAsClient:
 		return tls.RenegotiateOnceAsClient, nil
 	// RenegotiateFreelyAsClient allows a remote server to repeatedly
 	// request renegotiation.
-	case "FreelyAsClient":
+	case RenegotiateFreelyAsClient:
 		return tls.RenegotiateFreelyAsClient, nil
 	}
 	return tls.RenegotiateNever, errors.New("invalid TLS Renegotiation strategy selected")
@@ -65,7 +79,7 @@ func NewClientTLS(certFile, keyFile, caFile string, renegotiate string) (*tls.Co
 
 	renegotiation, err := GetRenegotiation(renegotiate)
 	if err != nil {
-		return nil, errors.Wrapf(err, "valid options include Never, OnceAsClient and FreelyAsClient")
+		return nil, errors.Wrapf(err, "valid options include %s, %s and %s", RenegotiateNever, RenegotiateOnceAsClient, RenegotiateFreelyAsClient)
 	}
 	config.Renegotiation = renegotiation
 

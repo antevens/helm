@@ -77,7 +77,7 @@ func newRepoAddCmd(out io.Writer) *cobra.Command {
 	f.StringVar(&o.certFile, "cert-file", "", "identify HTTPS client using this SSL certificate file")
 	f.StringVar(&o.keyFile, "key-file", "", "identify HTTPS client using this SSL key file")
 	f.StringVar(&o.caFile, "ca-file", "", "verify certificates of HTTPS-enabled servers using this CA bundle")
-	f.StringVar(&o.renegotiate, "renegotiate", "Never", "TLS renegotiation strategy, valid options include Never, OnceAsClient and FreelyAsClient")
+	f.StringVar(&o.renegotiate, "renegotiate", "never", "TLS renegotiation strategy, valid options include never, once and freely")
 
 	return cmd
 }

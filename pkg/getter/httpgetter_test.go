@@ -148,7 +148,7 @@ func TestDownloadTLS(t *testing.T) {
 	ca, pub, priv := filepath.Join(cd, "rootca.crt"), filepath.Join(cd, "crt.pem"), filepath.Join(cd, "key.pem")
 
 	tlsSrv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	tlsConf, err := tlsutil.NewClientTLS(pub, priv, ca, "Never")
+	tlsConf, err := tlsutil.NewClientTLS(pub, priv, ca, tlsutil.RenegotiateNever)
 	if err != nil {
 		t.Fatal(errors.Wrap(err, "can't create TLS config for client"))
 	}
@@ -162,7 +162,7 @@ func TestDownloadTLS(t *testing.T) {
 	g, err := NewHTTPGetter(
 		WithURL(u.String()),
 		WithTLSClientConfig(pub, priv, ca),
-		WithTLSRenegotiate("Never"),
+		WithTLSRenegotiate(tlsutil.RenegotiateNever),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -178,7 +178,7 @@ func TestDownloadTLS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig(pub, priv, ca), WithTLSRenegotiate("Never")); err != nil {
+	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig(pub, priv, ca), WithTLSRenegotiate(tlsutil.RenegotiateNever)); err != nil {
 		t.Error(err)
 	}
 
@@ -188,17 +188,17 @@ func TestDownloadTLS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig("", "", ca), WithTLSRenegotiate("Never")); err != nil {
+	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig("", "", ca), WithTLSRenegotiate(tlsutil.RenegotiateNever)); err != nil {
 		t.Error(err)
 	}
 
 	// test with OnceAsClient TLS renegotiation
-	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig(pub, priv, ca), WithTLSRenegotiate("OnceAsClient")); err != nil {
+	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig(pub, priv, ca), WithTLSRenegotiate(tlsutil.RenegotiateOnceAsClient)); err != nil {
 		t.Error(err)
 	}
 
 	// test with FreelyAsClient TLS renegotiation
-	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig(pub, priv, ca), WithTLSRenegotiate("FreelyAsClient")); err != nil {
+	if _, err := g.Get(u.String(), WithURL(u.String()), WithTLSClientConfig(pub, priv, ca), WithTLSRenegotiate(tlsutil.RenegotiateFreelyAsClient)); err != nil {
 		t.Error(err)
 	}
 
