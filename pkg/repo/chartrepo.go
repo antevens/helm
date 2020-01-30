@@ -207,7 +207,7 @@ type FindChartInRepoURL interface {
     SetRepoURL(string)                  FindChartInRepoURL
     SetChartName(string)                FindChartInRepoURL
     SetChartVersion(string)             FindChartInRepoURL
-    SetCredentials(string, string)      FindCHartInRepoURL
+    SetCredentials(string, string)      FindChartInRepoURL
     SetTLSFiles(string, string, string) FindChartInRepoURL
     SetTLSRenegotiation(string)         FindChartInRepoURL
     SetProviders(getter.Providers)      FindChartInRepoURL
@@ -323,7 +323,7 @@ func FindChartInRepoURL(repoURL string, chartName string, chartVersion string, c
 // FindChartInAuthRepoURL finds chart in chart repository pointed by repoURL
 // without adding repo to repositories, like FindChartInRepoURL,
 // but it also receives credentials for the chart repository.
-func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion, certFile, keyFile, caFile string, getters getter.Providers) (string, error) {
+func FindChartInAuthRepoURL(repoURL string, username string, password string, chartName string, chartVersion string, certFile string, keyFile string, caFile string, getters getter.Providers) (string, error) {
     finder =: NewChartFinder(repoURL, chartName, chartVersion)
     finder.SetCredentials(username, password)
     finder.SetTLSFiles(certFile, keyFile, caFile)
