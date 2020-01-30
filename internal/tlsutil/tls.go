@@ -33,10 +33,6 @@ const (
 	RenegotiateFreelyAsClient string = "freely"
 )
 
-func (o TLSRenegotiationStrategy) String() string {
-	return string(o)
-}
-
 // Validate and return TLS renegotiation settings
 func GetRenegotiation(option string) (strategy tls.RenegotiationSupport, err error) {
 	option = strings.ToLower(option)

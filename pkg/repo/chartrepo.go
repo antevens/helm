@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/v3/pkg/chart/loader"
+        "helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/helmpath"
 	"helm.sh/helm/v3/pkg/provenance"
@@ -77,9 +78,8 @@ func NewChartRepository(cfg *Entry, getters getter.Providers) (*ChartRepository,
 	}, nil
 }
 
-// Load loads a directory of charts as if it were a repository.
-//
-// It requires the presence of an index.yaml file in the directory.
+// Loads a directory of charts as if it were a repository.
+// requires the presence of an index.yaml file in the directory.
 func (r *ChartRepository) Load() error {
 	dirInfo, err := os.Stat(r.Config.Name)
 	if err != nil {
@@ -182,39 +182,102 @@ func (r *ChartRepository) generateIndex() error {
 	return nil
 }
 
-// FindChartInRepoURL finds chart in chart repository pointed by repoURL
-// without adding repo to repositories
-func FindChartInRepoURL(repoURL, chartName, chartVersion, certFile, keyFile, caFile string, renegotiate string, getters getter.Providers) (string, error) {
-	return FindChartInAuthRepoURL(repoURL, "", "", chartName, chartVersion, certFile, keyFile, caFile, renegotiate, getters)
+type TLSConfig struct {
+    certFile    string
+    keyFile     string
+    caFile      string
+    renegotiate string
 }
 
-// FindChartInAuthRepoURL finds chart in chart repository pointed by repoURL
-// without adding repo to repositories, like FindChartInRepoURL,
-// but it also receives credentials for the chart repository.
-func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion, certFile, keyFile, caFile string, renegotiate string, getters getter.Providers) (string, error) {
+type Credentials struct {
+    username string
+    password string
+}
 
+type ChartFinder struct {
+    repoUrl        string
+    chartName      string
+    chartVersion   string
+    tlsConfig      TLSConfig
+    credentials    Credendials
+    providers      getter.Providers
+}
+
+type FindChartInRepoURL interface {
+    SetRepoURL(string)                  FindChartInRepoURL
+    SetChartName(string)                FindChartInRepoURL
+    SetChartVersion(string)             FindChartInRepoURL
+    SetCredentials(string, string)      FindCHartInRepoURL
+    SetTLSFiles(string, string, string) FindChartInRepoURL
+    SetTLSRenegotiation(string)         FindChartInRepoURL
+    SetProviders(getter.Providers)      FindChartInRepoURL
+    GetURL()                            string, error
+}
+
+
+// Finder to locate charts in a chart repository without adding repo to
+// repositories
+func NewChartFinder(repoURL string, chartName string, chartVersion string) {
+    return ChartFinder{
+        repoUrl: repoUrl,
+        chartName: chartName,
+        chartVersion: chartVersion,
+        tlsConfig TLSFiles{},
+        getter.All(*cli.EnvSettings)
+    }
+}
+
+func (cf *ChartFinder) SetRepoUrl(url string) FindChartInRepoURL {
+    cf.repoUrl = url
+}
+
+func (cf *ChartFinder) SetChartName(name string) FindChartInRepoURL {
+    cf.chartName = name
+}
+
+func (cf *ChartFinder) SetChartVersion(version string) FindChartInRepoURL {
+    cf.chartVersion = version
+}
+
+func (cf *ChartFinder) SetTLSFiles(certFile string, keyFile string, caFile string) FindChartInRepoURL {
+    cf.tlsConfig = TLSFiles{certFile, keyFile, caFile}
+}
+
+func (cf *ChartFinder) SetCredentials(username string, password string) FindChartInRepoURL {
+    cf.credentials = Credentials{username, password}
+}
+
+func (cf *ChartFinder) SetTLSRenegotiation(renegotiate string) FindChartInRepoURL {
+    cf.tlsConfig.renegotiate = renegotiate
+}
+
+func (cf *ChartFinder) SetProvider(providers getter.Providers) FindChartInRepoURL {
+    cf.providers = providers
+}
+
+func (cf *ChartFinder) GetURL() string, error {
 	// Download and write the index file to a temporary location
 	buf := make([]byte, 20)
 	rand.Read(buf)
 	name := strings.ReplaceAll(base64.StdEncoding.EncodeToString(buf), "/", "-")
 
 	c := Entry{
-		URL:         repoURL,
-		Username:    username,
-		Password:    password,
-		CertFile:    certFile,
-		KeyFile:     keyFile,
-		CAFile:      caFile,
+		URL:         cf.repoURL,
+		Username:    cf.credentials.username,
+		Password:    cf.credentials.password,
+		CertFile:    cf.tlsConfig.certFile,
+		KeyFile:     cf.tlsConfig.keyFile,
+		CAFile:      cf.tlsConfig.caFile,
 		Name:        name,
-		Renegotiate: renegotiate,
+		Renegotiate: cf.tlsConfig.renegotiate,
 	}
-	r, err := NewChartRepository(&c, getters)
+	r, err := NewChartRepository(&c, cf.providers)
 	if err != nil {
 		return "", err
 	}
 	idx, err := r.DownloadIndexFile()
 	if err != nil {
-		return "", errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", repoURL)
+		return "", errors.Wrapf(err, "looks like %q is not a valid chart repository or cannot be reached", cf.repoURL)
 	}
 
 	// Read the index file for the repository to get chart information and return chart URL
@@ -223,13 +286,13 @@ func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion
 		return "", err
 	}
 
-	errMsg := fmt.Sprintf("chart %q", chartName)
+	errMsg := fmt.Sprintf("chart %q", cf.chartName)
 	if chartVersion != "" {
-		errMsg = fmt.Sprintf("%s version %q", errMsg, chartVersion)
+		errMsg = fmt.Sprintf("%s version %q", errMsg, cf.chartVersion)
 	}
-	cv, err := repoIndex.Get(chartName, chartVersion)
+	cv, err := repoIndex.Get(cf.chartName, cf.chartVersion)
 	if err != nil {
-		return "", errors.Errorf("%s not found in %s repository", errMsg, repoURL)
+		return "", errors.Errorf("%s not found in %s repository", errMsg, cf.repoURL)
 	}
 
 	if len(cv.URLs) == 0 {
@@ -238,12 +301,34 @@ func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion
 
 	chartURL := cv.URLs[0]
 
-	absoluteChartURL, err := ResolveReferenceURL(repoURL, chartURL)
+	absoluteChartURL, err := ResolveReferenceURL(cf.repoURL, cf.chartURL)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to make chart URL absolute")
 	}
 
 	return absoluteChartURL, nil
+}
+
+// Obsolete, use NewChartFinder/getURL instead
+// FindChartInRepoURL finds chart in chart repository pointed by repoURL
+// without adding repo to repositories
+func FindChartInRepoURL(repoURL string, chartName string, chartVersion string, certFile string, keyFile string, caFile string, getters getter.Providers) (string, error) {
+    finder =: NewChartFinder(repoURL, chartName, chartVersion)
+    finder.SetTLSFiles(certFile, keyFile, caFile)
+    finder.SetProvider(getters)
+    return finder.getURL()
+}
+
+// Obsolete, use NewChartFinder/getURL instead
+// FindChartInAuthRepoURL finds chart in chart repository pointed by repoURL
+// without adding repo to repositories, like FindChartInRepoURL,
+// but it also receives credentials for the chart repository.
+func FindChartInAuthRepoURL(repoURL, username, password, chartName, chartVersion, certFile, keyFile, caFile string, getters getter.Providers) (string, error) {
+    finder =: NewChartFinder(repoURL, chartName, chartVersion)
+    finder.SetCredentials(username, password)
+    finder.SetTLSFiles(certFile, keyFile, caFile)
+    finder.SetProvider(getters)
+    return finder.getURL()
 }
 
 // ResolveReferenceURL resolves refURL relative to baseURL.
