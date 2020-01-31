@@ -671,12 +671,12 @@ func (c *ChartPathOptions) LocateChart(name string, settings *cli.EnvSettings) (
 		dl.Verify = downloader.VerifyAlways
 	}
 	if c.RepoURL != "" {
-            finder =: NewChartFinder(c.repoURL, name, version)
-            finder.SetCredentials(c.username, c.password)
-            finder.SetTLSFiles(c.CertFile, c.keyFile, c.CaFile)
-            finder.SetTLSRenegotiate(c.Renegotiate)
+            finder := repo.NewChartFinder(c.RepoURL, name, version)
+            finder.SetCredentials(c.Username, c.Password)
+            finder.SetTLSFiles(c.CertFile, c.KeyFile, c.CaFile)
+            finder.SetTLSRenegotiation(c.Renegotiate)
             finder.SetProvider(getter.All(settings))
-            chartURL, err = finder.getURL()
+            chartURL, err := finder.GetURL()
 		if err != nil {
 			return "", err
 		}

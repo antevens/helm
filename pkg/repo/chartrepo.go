@@ -195,67 +195,77 @@ type Credentials struct {
 }
 
 type ChartFinder struct {
-    repoUrl        string
+    repoURL        string
     chartName      string
     chartVersion   string
+    credentials    Credentials
     tlsConfig      TLSConfig
-    credentials    Credendials
     providers      getter.Providers
 }
 
-type FindChartInRepoURL interface {
-    SetRepoURL(string)                  FindChartInRepoURL
-    SetChartName(string)                FindChartInRepoURL
-    SetChartVersion(string)             FindChartInRepoURL
-    SetCredentials(string, string)      FindChartInRepoURL
-    SetTLSFiles(string, string, string) FindChartInRepoURL
-    SetTLSRenegotiation(string)         FindChartInRepoURL
-    SetProviders(getter.Providers)      FindChartInRepoURL
-    GetURL()                            string, error
+type FindChart interface {
+    SetRepoURL(string)                  FindChart
+    SetChartName(string)                FindChart
+    SetChartVersion(string)             FindChart
+    SetCredentials(string, string)      FindChart
+    SetTLSFiles(string, string, string) FindChart
+    SetTLSRenegotiation(string)         FindChart
+    SetProviders(getter.Providers)      FindChart
+    GetURL()                            (string, error)
 }
 
 
 // Finder to locate charts in a chart repository without adding repo to
 // repositories
-func NewChartFinder(repoURL string, chartName string, chartVersion string) {
+func NewChartFinder(repoURL string, chartName string, chartVersion string) ChartFinder {
     return ChartFinder{
-        repoUrl: repoUrl,
+        repoURL: repoURL,
         chartName: chartName,
         chartVersion: chartVersion,
-        tlsConfig TLSFiles{},
-        getter.All(*cli.EnvSettings)
+        credentials: Credentials{},
+        tlsConfig: TLSConfig{},
+        providers: getter.All(&cli.EnvSettings{}),
     }
 }
 
-func (cf *ChartFinder) SetRepoUrl(url string) FindChartInRepoURL {
-    cf.repoUrl = url
+func (cf *ChartFinder) SetRepoURL(url string) ChartFinder {
+    cf.repoURL = url
+    return *cf
 }
 
-func (cf *ChartFinder) SetChartName(name string) FindChartInRepoURL {
+func (cf *ChartFinder) SetChartName(name string) ChartFinder {
     cf.chartName = name
+    return *cf
 }
 
-func (cf *ChartFinder) SetChartVersion(version string) FindChartInRepoURL {
+func (cf *ChartFinder) SetChartVersion(version string) ChartFinder {
     cf.chartVersion = version
+    return *cf
 }
 
-func (cf *ChartFinder) SetTLSFiles(certFile string, keyFile string, caFile string) FindChartInRepoURL {
-    cf.tlsConfig = TLSFiles{certFile, keyFile, caFile}
+func (cf *ChartFinder) SetTLSFiles(certFile string, keyFile string, caFile string) ChartFinder {
+    cf.tlsConfig.certFile = certFile
+    cf.tlsConfig.keyFile = keyFile
+    cf.tlsConfig.caFile = caFile
+    return *cf
 }
 
-func (cf *ChartFinder) SetCredentials(username string, password string) FindChartInRepoURL {
+func (cf *ChartFinder) SetCredentials(username string, password string) ChartFinder {
     cf.credentials = Credentials{username, password}
+    return *cf
 }
 
-func (cf *ChartFinder) SetTLSRenegotiation(renegotiate string) FindChartInRepoURL {
+func (cf *ChartFinder) SetTLSRenegotiation(renegotiate string) ChartFinder {
     cf.tlsConfig.renegotiate = renegotiate
+    return *cf
 }
 
-func (cf *ChartFinder) SetProvider(providers getter.Providers) FindChartInRepoURL {
+func (cf *ChartFinder) SetProvider(providers getter.Providers) ChartFinder {
     cf.providers = providers
+    return *cf
 }
 
-func (cf *ChartFinder) GetURL() string, error {
+func (cf *ChartFinder) GetURL() (string, error) {
 	// Download and write the index file to a temporary location
 	buf := make([]byte, 20)
 	rand.Read(buf)
@@ -287,7 +297,7 @@ func (cf *ChartFinder) GetURL() string, error {
 	}
 
 	errMsg := fmt.Sprintf("chart %q", cf.chartName)
-	if chartVersion != "" {
+	if cf.chartVersion != "" {
 		errMsg = fmt.Sprintf("%s version %q", errMsg, cf.chartVersion)
 	}
 	cv, err := repoIndex.Get(cf.chartName, cf.chartVersion)
@@ -301,7 +311,7 @@ func (cf *ChartFinder) GetURL() string, error {
 
 	chartURL := cv.URLs[0]
 
-	absoluteChartURL, err := ResolveReferenceURL(cf.repoURL, cf.chartURL)
+	absoluteChartURL, err := ResolveReferenceURL(cf.repoURL, chartURL)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to make chart URL absolute")
 	}
@@ -309,26 +319,26 @@ func (cf *ChartFinder) GetURL() string, error {
 	return absoluteChartURL, nil
 }
 
-// Obsolete, use NewChartFinder/getURL instead
+// Obsolete, use NewChartFinder/GetURL instead
 // FindChartInRepoURL finds chart in chart repository pointed by repoURL
 // without adding repo to repositories
 func FindChartInRepoURL(repoURL string, chartName string, chartVersion string, certFile string, keyFile string, caFile string, getters getter.Providers) (string, error) {
-    finder =: NewChartFinder(repoURL, chartName, chartVersion)
+    finder := NewChartFinder(repoURL, chartName, chartVersion)
     finder.SetTLSFiles(certFile, keyFile, caFile)
     finder.SetProvider(getters)
-    return finder.getURL()
+    return finder.GetURL()
 }
 
-// Obsolete, use NewChartFinder/getURL instead
+// Obsolete, use NewChartFinder/GetURL instead
 // FindChartInAuthRepoURL finds chart in chart repository pointed by repoURL
 // without adding repo to repositories, like FindChartInRepoURL,
 // but it also receives credentials for the chart repository.
 func FindChartInAuthRepoURL(repoURL string, username string, password string, chartName string, chartVersion string, certFile string, keyFile string, caFile string, getters getter.Providers) (string, error) {
-    finder =: NewChartFinder(repoURL, chartName, chartVersion)
+    finder := NewChartFinder(repoURL, chartName, chartVersion)
     finder.SetCredentials(username, password)
     finder.SetTLSFiles(certFile, keyFile, caFile)
     finder.SetProvider(getters)
-    return finder.getURL()
+    return finder.GetURL()
 }
 
 // ResolveReferenceURL resolves refURL relative to baseURL.

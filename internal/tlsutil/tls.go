@@ -75,7 +75,7 @@ func NewClientTLS(certFile, keyFile, caFile string, renegotiate string) (*tls.Co
 
 	renegotiation, err := GetRenegotiation(renegotiate)
 	if err != nil {
-		return nil, errors.Wrapf(err, "valid options include %s, %s and %s", RenegotiateNever, RenegotiateOnceAsClient, RenegotiateFreelyAsClient)
+		return nil, errors.Wrapf(err, "valid options include '%s', '%s' and '%s'", RenegotiateNever, RenegotiateOnceAsClient, RenegotiateFreelyAsClient)
 	}
 	config.Renegotiation = renegotiation
 

@@ -89,12 +89,12 @@ func (p *Pull) Run(chartRef string) (string, error) {
 	}
 
 	if p.RepoURL != "" {
-            finder =: NewChartFinder(p.repoURL, chartRef, p.version)
+            finder := repo.NewChartFinder(p.RepoURL, chartRef, p.Version)
             finder.SetCredentials(p.Username, p.Password)
             finder.SetTLSFiles(p.CertFile, p.KeyFile, p.CaFile)
             finder.SetProvider(getter.All(p.Settings))
-            finder.SetTLSRenegotiate(p.Renegotiate)
-            chartURL = finder.getURL()
+            finder.SetTLSRenegotiation(p.Renegotiate)
+            chartURL, err := finder.GetURL()
 		if err != nil {
 			return out.String(), err
 		}
